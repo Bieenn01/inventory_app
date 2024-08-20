@@ -3,88 +3,55 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:inventory_app/Cameras/camera.dart';
-
+import 'package:inventory_app/Cameras/camera1.dart';
+import 'package:inventory_app/Cameras/camera2.dart';
+import 'package:inventory_app/Cameras/camera3.dart';
+import 'package:inventory_app/Cameras/camera4.dart';
 
 class MyTabBar extends StatefulWidget {
   @override
   _MyTabBarState createState() => _MyTabBarState();
 }
 
-class _MyTabBarState extends State<MyTabBar> {
+class _MyTabBarState extends State<MyTabBar>
+     {
   int _selectedIndex = 0;
   int _selectedTabs = 0;
 
   TabController? _tabController;
 
+  String? _selectedWaybill;
+  String? _selectedProduct;
+
+  final List<String> _waybillOptions = [
+    'Waybill 1',
+    'Waybill 2',
+    'Waybill 3',
+  ];
+
+  final List<String> _productOptions = [
+    'Product 1',
+    'Product 2',
+    'Product 3',
+  ];
+
+  DateTime? _expiryDate;
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue,
-              ),
-              child: Text(
-                'Categories',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
-              ),
-            ),
-            ListTile(
-              title: Text('Information'),
-              onTap: () {
-                setState(() {
-                  _selectedIndex = 0;
-                });
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              title: Text('Picture'),
-              onTap: () {
-                setState(() {
-                  _selectedIndex = 1;
-                });
-                Navigator.pop(context);
-              },
-            ),
-            // Add more ListTile widgets for additional categories here
-          ],
-        ),
-      ),
       body: DefaultTabController(
         length: 2, // Two main tabs: Information and Picture
         child: NestedScrollView(
           headerSliverBuilder: (context, isScrolled) {
             return [
               SliverAppBar(
-                leading: IconButton(
-                  icon: Icon(Icons.menu),
-                  onPressed: () {
-                    Scaffold.of(context).openDrawer();
-                  },
-                ),
-                centerTitle: false,
-                actions: [
-                  IconButton(
-                    icon: Icon(Icons.share),
-                    onPressed: () {},
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.search),
-                    onPressed: () {},
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.pets),
-                    onPressed: () {},
-                  ),
-                ],
+                backgroundColor: Colors.blueGrey,
+                centerTitle: true,
+                title: Text('Inventory'),
                 bottom: TabBar(
+                  labelColor: Colors.white,
                   tabs: [
                     Tab(text: 'Information'),
                     Tab(text: 'Picture'),
@@ -95,7 +62,6 @@ class _MyTabBarState extends State<MyTabBar> {
           },
           body: TabBarView(
             children: [
-              // Information Tab
               DefaultTabController(
                 length: 1, // One tab for Information
                 child: Scaffold(
@@ -105,13 +71,7 @@ class _MyTabBarState extends State<MyTabBar> {
                       Tab(text: 'Details'), // Only one tab
                     ],
                   ),
-                  body: TabBarView(
-                    children: [
-                      Center(
-                        child: Icon(Icons.info, color: Colors.blue, size: 100),
-                      ),
-                    ],
-                  ),
+                  body: _informationTab(),
                 ),
               ),
               // Picture Tab
@@ -128,33 +88,131 @@ class _MyTabBarState extends State<MyTabBar> {
                       ],
                     ),
                   ),
-                  body: TabBarView(
-                    children: [
-                      Center(
-                        child: CameraWidget(),
-                      ),
-                      Center(
-                        child:
-                            Icon(Icons.image, color: Colors.green, size: 100),
-                      ),
-                      Center(
-                        child: Icon(Icons.image, color: Colors.red, size: 100),
-                      ),
-                      Center(
-                        child:
-                            Icon(Icons.image, color: Colors.orange, size: 100),
-                      ),
-                      Center(
-                        child:
-                            Icon(Icons.image, color: Colors.purple, size: 100),
-                      ),
-                    ],
-                  ),
+                  body: _buildTabBarViewForPicture(),
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _informationTab() {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildAutocomplete('Waybill', _selectedWaybill, _waybillOptions,
+              (value) {
+            setState(() {
+              _selectedWaybill = value;
+            });
+          }),
+          SizedBox(height: 16),
+          _buildAutocomplete('Product', _selectedProduct, _productOptions,
+              (value) {
+            setState(() {
+              _selectedProduct = value;
+            });
+          }),
+          SizedBox(height: 16),
+          _buildTextField('Contents per Box'),
+          _buildTextField('Contents per Case'),
+          _buildTextField('Arrived Quantity per Case'),
+          _buildTextField('Arrived Quantity per Box'),
+          _buildTextField('Lot No.'),
+          _buildDateField('Expiry Date'),
+          _buildTextField('Weight (g)'),
+          _buildTextField('Length (cm)'),
+          _buildTextField('Width (cm)'),
+          _buildTextField('Height (cm)'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAutocomplete(
+    String label,
+    String? selectedValue,
+    List<String> options,
+    ValueChanged<String?> onChanged,
+  ) {
+    return Autocomplete<String>(
+      initialValue: TextEditingValue(
+        text: selectedValue ?? '',
+      ),
+      optionsBuilder: (TextEditingValue textEditingValue) {
+        return options.where((String option) {
+          return option
+              .toLowerCase()
+              .contains(textEditingValue.text.toLowerCase());
+        });
+      },
+      onSelected: (String selectedOption) {
+        onChanged(selectedOption);
+      },
+      fieldViewBuilder: (BuildContext context,
+          TextEditingController textEditingController,
+          FocusNode focusNode,
+          VoidCallback onFieldSubmitted) {
+        textEditingController.text = selectedValue ?? '';
+        return TextFormField(
+          controller: textEditingController,
+          focusNode: focusNode,
+          decoration: InputDecoration(
+            labelText: label,
+            border: OutlineInputBorder(),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTextField(String label) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: TextFormField(
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(),
+        ),
+        keyboardType: label.contains('Date')
+            ? TextInputType.datetime
+            : TextInputType.text,
+      ),
+    );
+  }
+
+  Widget _buildDateField(String label) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: TextFormField(
+        readOnly: true,
+        controller: TextEditingController(
+          text: _expiryDate == null
+              ? ''
+              : '${_expiryDate!.toLocal()}'.split(' ')[0],
+        ),
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(),
+          suffixIcon: Icon(Icons.calendar_today),
+        ),
+        onTap: () async {
+          DateTime? selectedDate = await showDatePicker(
+            context: context,
+            initialDate: _expiryDate ?? DateTime.now(),
+            firstDate: DateTime(2000),
+            lastDate: DateTime(2101),
+          );
+          if (selectedDate != null && selectedDate != _expiryDate) {
+            setState(() {
+              _expiryDate = selectedDate;
+            });
+          }
+        },
       ),
     );
   }
@@ -177,29 +235,29 @@ class _MyTabBarState extends State<MyTabBar> {
       splashBorderRadius: BorderRadius.circular(40),
       tabs: [
         Tab(
-          text: 'Camera Front',
+          text: 'Top View (Primary)',
           iconMargin: EdgeInsets.zero,
-          icon: Icon(Icons.camera_front),
+          icon: Icon(Icons.photo_camera_back),
         ),
         Tab(
-          text: 'Container 2',
+          text: 'Side View',
           iconMargin: EdgeInsets.zero,
-          icon: Icon(Icons.abc),
+          icon: Icon(Icons.photo_camera_back),
         ),
         Tab(
-          text: 'Container 3',
+          text: 'Inside From',
           iconMargin: EdgeInsets.zero,
-          icon: Icon(Icons.abc),
+          icon: Icon(Icons.photo_camera_back),
         ),
         Tab(
-          text: 'Container 4',
+          text: 'Inside Back',
           iconMargin: EdgeInsets.zero,
-          icon: Icon(Icons.abc),
+          icon: Icon(Icons.photo_camera_back),
         ),
         Tab(
-          text: 'Container 5',
+          text: 'Expiry',
           iconMargin: EdgeInsets.zero,
-          icon: Icon(Icons.abc),
+          icon: Icon(Icons.photo_camera_back),
         ),
       ],
       onTap: (index) {
@@ -207,6 +265,28 @@ class _MyTabBarState extends State<MyTabBar> {
           _selectedTabs = index;
         });
       },
+    );
+  }
+
+  Widget _buildTabBarViewForPicture() {
+    return TabBarView(
+      children: [
+        Center(
+          child: CameraWidget(),
+        ),
+        Center(
+          child: CameraWidget1(),
+        ),
+        Center(
+          child: CameraWidget2(),
+        ),
+        Center(
+          child: CameraWidget3(),
+        ),
+        Center(
+          child: CameraWidget4(),
+        ),
+      ],
     );
   }
 }

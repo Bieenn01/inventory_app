@@ -6,14 +6,14 @@ import 'package:flutter/material.dart';
 
 List<CameraDescription> cameras = [];
 
-class CameraWidget extends StatefulWidget {
-  const CameraWidget({Key? key}) : super(key: key);
+class CameraWidget2 extends StatefulWidget {
+  const CameraWidget2({Key? key}) : super(key: key);
 
   @override
-  State<CameraWidget> createState() => _CameraWidgetState();
+  State<CameraWidget2> createState() => _CameraWidget2State();
 }
 
-class _CameraWidgetState extends State<CameraWidget>
+class _CameraWidget2State extends State<CameraWidget2>
     with SingleTickerProviderStateMixin {
   late CameraController _cameraController;
   File? _capturedImageFile;
